@@ -16,5 +16,9 @@ def custom_openapi(app):
         routes=app.routes,
     )
 
+    openapi_schema["servers"] = [
+        {"url": "https://route-memory-3d.onrender.com"}
+    ]
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
