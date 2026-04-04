@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+gpxpy
+numpy
+trimesh
+python-multipart
+shapely
