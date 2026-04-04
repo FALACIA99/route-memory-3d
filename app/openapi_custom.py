@@ -7,7 +7,7 @@ def custom_openapi(app):
 
     openapi_schema = get_openapi(
         title="Route Memory 3D API",
-        version="1.0.0",
+        version="2.0.0",
         summary="API para generar maquetas STL desde rutas deportivas",
         description=(
             "Recibe un link o GPX, extrae la ruta, calcula el área "

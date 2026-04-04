@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from app.models import (
     GenerateFromGpxRequest,
     GenerateFromLinkRequest,
+    GenerateFromGpxRealTerrainRequest,
     GenerateResponse,
 )
 from app.route_utils import (
@@ -13,7 +14,14 @@ from app.route_utils import (
     compute_bbox,
     normalize_points_to_model,
 )
-from app.mesh_utils import export_combined_stl
+from app.mesh_utils import (
+    export_combined_stl,
+    export_real_terrain_stl,
+)
+from app.terrain_utils import (
+    fetch_elevation_grid,
+    normalize_elevation_grid_to_mm,
+)
 from app.openapi_custom import custom_openapi
 from app.link_resolvers import resolve_route_link_to_gpx, RouteLinkResolutionError
 
@@ -24,7 +32,7 @@ PUBLIC_BASE_URL = "https://route-memory-3d.onrender.com"
 
 app = FastAPI(
     title="Route Memory 3D API",
-    version="1.0.0",
+    version="2.0.0",
     description="Genera STL de rutas deportivas como recuerdo 3D."
 )
 
@@ -75,6 +83,58 @@ def generate_from_gpx(payload: GenerateFromGpxRequest):
             bbox=bbox,
             stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
             note="Esta versión base crea una maqueta con base y ruta visible. Aún no reconstruye terreno DEM real."
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/generate-from-gpx-real-terrain", response_model=GenerateResponse)
+def generate_from_gpx_real_terrain(payload: GenerateFromGpxRealTerrainRequest):
+    try:
+        raw_points = parse_gpx_content(payload.gpx_content)
+        bbox = compute_bbox(raw_points, margin_percent=payload.bbox_margin_percent)
+
+        _, _, elevation_grid = fetch_elevation_grid(
+            bbox=bbox,
+            dataset=payload.terrain_dataset,
+            cols=payload.terrain_grid_cols,
+            rows=payload.terrain_grid_rows,
+        )
+
+        elevation_mm_grid = normalize_elevation_grid_to_mm(
+            elevation_grid=elevation_grid,
+            terrain_relief_mm=payload.terrain_relief_mm,
+            vertical_exaggeration=payload.vertical_exaggeration,
+        )
+
+        job_id = str(uuid.uuid4())
+        filename = f"{job_id}.stl"
+        output_path = os.path.join(OUTPUT_DIR, filename)
+
+        export_real_terrain_stl(
+            route_points_geo=raw_points,
+            bbox=bbox,
+            elevation_mm_grid=elevation_mm_grid,
+            model_width_mm=payload.model_width_mm,
+            model_height_mm=payload.model_height_mm,
+            base_thickness_mm=payload.base_thickness_mm,
+            route_height_mm=payload.route_height_mm,
+            output_path=output_path,
+        )
+
+        return GenerateResponse(
+            success=True,
+            message="STL generado correctamente desde GPX con topografía real.",
+            platform=payload.terrain_dataset,
+            route_name=payload.route_name,
+            num_points=len(raw_points),
+            bbox=bbox,
+            stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
+            note=(
+                f"Terreno generado con dataset {payload.terrain_dataset}, "
+                f"grilla {payload.terrain_grid_cols}x{payload.terrain_grid_rows}."
+            ),
         )
 
     except Exception as e:

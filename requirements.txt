@@ -6,3 +6,4 @@ numpy
 trimesh
 python-multipart
 shapely
+requests
