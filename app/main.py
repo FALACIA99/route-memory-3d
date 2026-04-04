@@ -32,7 +32,7 @@ PUBLIC_BASE_URL = "https://route-memory-3d.onrender.com"
 
 app = FastAPI(
     title="Route Memory 3D API",
-    version="2.0.0",
+    version="3.0.0",
     description="Genera STL de rutas deportivas como recuerdo 3D."
 )
 
@@ -82,7 +82,7 @@ def generate_from_gpx(payload: GenerateFromGpxRequest):
             num_points=len(raw_points),
             bbox=bbox,
             stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
-            note="Esta versión base crea una maqueta con base y ruta visible. Aún no reconstruye terreno DEM real."
+            note="Versión simple con base y ruta visible."
         )
 
     except Exception as e:
@@ -119,6 +119,8 @@ def generate_from_gpx_real_terrain(payload: GenerateFromGpxRealTerrainRequest):
             model_width_mm=payload.model_width_mm,
             model_height_mm=payload.model_height_mm,
             base_thickness_mm=payload.base_thickness_mm,
+            route_style=payload.route_style,
+            route_width_mm=payload.route_width_mm,
             route_height_mm=payload.route_height_mm,
             output_path=output_path,
         )
@@ -132,8 +134,9 @@ def generate_from_gpx_real_terrain(payload: GenerateFromGpxRealTerrainRequest):
             bbox=bbox,
             stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
             note=(
-                f"Terreno generado con dataset {payload.terrain_dataset}, "
-                f"grilla {payload.terrain_grid_cols}x{payload.terrain_grid_rows}."
+                f"Topografía real con ruta estilo {payload.route_style}, "
+                f"ancho {payload.route_width_mm} mm y grilla "
+                f"{payload.terrain_grid_cols}x{payload.terrain_grid_rows}."
             ),
         )
 

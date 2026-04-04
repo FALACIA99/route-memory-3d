@@ -1,4 +1,5 @@
 from fastapi.openapi.utils import get_openapi
+import os
 
 
 def custom_openapi(app):
@@ -16,8 +17,10 @@ def custom_openapi(app):
         routes=app.routes,
     )
 
+    server_url = os.getenv("OPENAPI_SERVER_URL", "http://127.0.0.1:8000")
+
     openapi_schema["servers"] = [
-        {"url": "https://route-memory-3d.onrender.com"}
+        {"url": server_url}
     ]
 
     app.openapi_schema = openapi_schema

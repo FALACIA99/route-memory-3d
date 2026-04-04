@@ -32,7 +32,11 @@ class GenerateFromGpxRealTerrainRequest(BaseModel):
     model_width_mm: float = Field(180.0, ge=80, le=400)
     model_height_mm: float = Field(140.0, ge=80, le=400)
     base_thickness_mm: float = Field(8.0, ge=2, le=30)
+
+    route_style: Literal["raised", "hybrid"] = "hybrid"
+    route_width_mm: float = Field(2.6, ge=1.0, le=8.0)
     route_height_mm: float = Field(2.0, ge=0.5, le=10)
+
     bbox_margin_percent: float = Field(15.0, ge=0, le=100)
     vertical_exaggeration: float = Field(1.3, ge=0.1, le=10)
     terrain_dataset: Literal["srtm90m", "srtm30m", "aster30m", "mapzen"] = "srtm90m"
