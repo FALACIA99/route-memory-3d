@@ -19,6 +19,7 @@ from app.link_resolvers import resolve_route_link_to_gpx, RouteLinkResolutionErr
 
 
 OUTPUT_DIR = "output"
+PUBLIC_BASE_URL = "https://route-memory-3d.onrender.com"
 
 
 app = FastAPI(
@@ -72,8 +73,8 @@ def generate_from_gpx(payload: GenerateFromGpxRequest):
             route_name=payload.route_name,
             num_points=len(raw_points),
             bbox=bbox,
-            stl_file=f"/download/{filename}",
-            note="Esta versión base crea una maqueta con base + ruta visible. Luego puedes reemplazar la base por terreno DEM real."
+            stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
+            note="Esta versión base crea una maqueta con base y ruta visible. Aún no reconstruye terreno DEM real."
         )
 
     except Exception as e:
@@ -118,7 +119,7 @@ def generate_from_link(payload: GenerateFromLinkRequest):
             route_name=payload.route_name,
             num_points=len(raw_points),
             bbox=bbox,
-            stl_file=f"/download/{filename}",
+            stl_file=f"{PUBLIC_BASE_URL}/download/{filename}",
             note="Link resuelto y convertido a ruta geográfica."
         )
 
