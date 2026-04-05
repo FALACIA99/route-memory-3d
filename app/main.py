@@ -1,7 +1,9 @@
 import os
 import uuid
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from app.models import (
     GenerateFromGpxRequest,
     GenerateFromLinkRequest,
@@ -28,17 +30,34 @@ from app.link_resolvers import resolve_route_link_to_gpx, RouteLinkResolutionErr
 from app.file_utils import decode_uploaded_gpx, decode_gpx_base64
 
 
-OUTPUT_DIR = "output"
-PUBLIC_BASE_URL = "https://route-memory-3d.onrender.com"
+BASE_DIR = Path(__file__).resolve().parent.parent
+OUTPUT_DIR = BASE_DIR / "output"
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://route-memory-3d.onrender.com")
 
 
 app = FastAPI(
     title="Route Memory 3D API",
-    version="5.0.0",
+    version="6.1.0",
     description="Genera STL de rutas deportivas como recuerdo 3D."
 )
 
 app.openapi = lambda: custom_openapi(app)
+
+
+def get_index_candidates() -> list[Path]:
+    return [
+        BASE_DIR / "web" / "index.html",
+        Path.cwd() / "web" / "index.html",
+        Path.cwd() / "index.html",
+        BASE_DIR / "index.html",
+    ]
+
+
+def find_index_file() -> Path | None:
+    for candidate in get_index_candidates():
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
 
 
 def build_simple_stl_from_gpx_content(
@@ -64,7 +83,7 @@ def build_simple_stl_from_gpx_content(
 
     job_id = str(uuid.uuid4())
     filename = f"{job_id}.stl"
-    output_path = os.path.join(OUTPUT_DIR, filename)
+    output_path = OUTPUT_DIR / filename
 
     export_combined_stl(
         route_points=normalized_points,
@@ -72,7 +91,7 @@ def build_simple_stl_from_gpx_content(
         model_height_mm=model_height_mm,
         base_thickness_mm=base_thickness_mm,
         route_height_mm=route_height_mm,
-        output_path=output_path,
+        output_path=str(output_path),
     )
 
     return GenerateResponse(
@@ -121,7 +140,7 @@ def build_real_terrain_stl_from_gpx_content(
 
     job_id = str(uuid.uuid4())
     filename = f"{job_id}.stl"
-    output_path = os.path.join(OUTPUT_DIR, filename)
+    output_path = OUTPUT_DIR / filename
 
     export_real_terrain_stl(
         route_points_geo=raw_points,
@@ -133,7 +152,7 @@ def build_real_terrain_stl_from_gpx_content(
         route_style=route_style,
         route_width_mm=route_width_mm,
         route_height_mm=route_height_mm,
-        output_path=output_path,
+        output_path=str(output_path),
     )
 
     return GenerateResponse(
@@ -152,11 +171,57 @@ def build_real_terrain_stl_from_gpx_content(
     )
 
 
-@app.get("/")
-def root():
+@app.get("/", response_class=HTMLResponse)
+def web_home():
+    index_file = find_index_file()
+    if index_file:
+        return HTMLResponse(index_file.read_text(encoding="utf-8"))
+
+    searched = "".join(
+        f"<li><code>{str(path)}</code></li>" for path in get_index_candidates()
+    )
+    html = f"""
+    <html>
+      <head><title>Route Memory 3D</title></head>
+      <body style="font-family: Arial, sans-serif; padding: 24px;">
+        <h1>Route Memory 3D</h1>
+        <p>No se encontró <code>index.html</code>.</p>
+        <p><strong>BASE_DIR:</strong> <code>{BASE_DIR}</code></p>
+        <p><strong>Path.cwd():</strong> <code>{Path.cwd()}</code></p>
+        <p><strong>Rutas buscadas:</strong></p>
+        <ul>{searched}</ul>
+      </body>
+    </html>
+    """
+    return HTMLResponse(html, status_code=200)
+
+
+@app.get("/health")
+def health():
     return {
         "ok": True,
         "message": "Route Memory 3D API funcionando"
+    }
+
+
+@app.get("/debug-paths")
+def debug_paths():
+    candidates = [str(p) for p in get_index_candidates()]
+    existing = [str(p) for p in get_index_candidates() if p.exists()]
+    return {
+        "base_dir": str(BASE_DIR),
+        "cwd": str(Path.cwd()),
+        "candidates": candidates,
+        "existing": existing,
+    }
+
+
+@app.get("/api-info")
+def api_info():
+    return {
+        "ok": True,
+        "message": "API disponible",
+        "docs": f"{PUBLIC_BASE_URL}/docs"
     }
 
 
@@ -331,11 +396,11 @@ def generate_from_link(payload: GenerateFromLinkRequest):
 
 @app.get("/download/{filename}")
 def download_file(filename: str):
-    file_path = os.path.join(OUTPUT_DIR, filename)
-    if not os.path.exists(file_path):
+    file_path = OUTPUT_DIR / filename
+    if not file_path.exists():
         raise HTTPException(status_code=404, detail="Archivo no encontrado.")
     return FileResponse(
-        file_path,
+        str(file_path),
         media_type="model/stl",
         filename=filename
     )

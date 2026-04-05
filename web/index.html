@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Route Memory 3D</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22c55e;
+      --border: #374151;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1020, #111827);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    input, select, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 15px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      background: #0b1220;
+    }
+
+    button {
+      background: var(--accent);
+      color: #052e16;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      filter: brightness(1.05);
+    }
+
+    .status {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0b1220;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .success {
+      border-color: rgba(34, 197, 94, 0.45);
+    }
+
+    .error {
+      border-color: rgba(239, 68, 68, 0.45);
+    }
+
+    .small {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    a {
+      color: #86efac;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    @media (max-width: 720px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Route Memory 3D</h1>
+    <div class="subtitle">
+      Sube tu archivo GPX y genera una maqueta 3D imprimible con topografía real y la ruta visible sobre el relieve.
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Generador de maqueta</h2>
+
+      <form id="gpxForm">
+        <div class="grid">
+          <div class="field full">
+            <label for="gpx_file">Archivo GPX</label>
+            <input id="gpx_file" name="gpx_file" type="file" accept=".gpx" required />
+          </div>
+
+          <div class="field full">
+            <label for="route_name">Nombre del proyecto</label>
+            <input id="route_name" name="route_name" type="text" placeholder="Ej: Cumbre Volcán Antuco" />
+          </div>
+
+          <div class="field">
+            <label for="model_width_mm">Ancho maqueta (mm)</label>
+            <input id="model_width_mm" name="model_width_mm" type="number" step="1" value="180" />
+          </div>
+
+          <div class="field">
+            <label for="model_height_mm">Alto maqueta (mm)</label>
+            <input id="model_height_mm" name="model_height_mm" type="number" step="1" value="140" />
+          </div>
+
+          <div class="field">
+            <label for="base_thickness_mm">Espesor base (mm)</label>
+            <input id="base_thickness_mm" name="base_thickness_mm" type="number" step="0.1" value="8" />
+          </div>
+
+          <div class="field">
+            <label for="vertical_exaggeration">Exageración vertical</label>
+            <input id="vertical_exaggeration" name="vertical_exaggeration" type="number" step="0.1" value="1.3" />
+          </div>
+
+          <div class="field">
+            <label for="route_style">Estilo de ruta</label>
+            <select id="route_style" name="route_style">
+              <option value="hybrid" selected>Hybrid</option>
+              <option value="raised">Raised</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="route_width_mm">Ancho ruta (mm)</label>
+            <input id="route_width_mm" name="route_width_mm" type="number" step="0.1" value="2.6" />
+          </div>
+
+          <div class="field">
+            <label for="route_height_mm">Altura ruta (mm)</label>
+            <input id="route_height_mm" name="route_height_mm" type="number" step="0.1" value="2.0" />
+          </div>
+
+          <div class="field">
+            <label for="bbox_margin_percent">Margen bbox (%)</label>
+            <input id="bbox_margin_percent" name="bbox_margin_percent" type="number" step="1" value="15" />
+          </div>
+
+          <div class="field">
+            <label for="terrain_dataset">Dataset terreno</label>
+            <select id="terrain_dataset" name="terrain_dataset">
+              <option value="srtm90m" selected>srtm90m</option>
+              <option value="srtm30m">srtm30m</option>
+              <option value="aster30m">aster30m</option>
+              <option value="mapzen">mapzen</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="terrain_grid_cols">Columnas grilla</label>
+            <input id="terrain_grid_cols" name="terrain_grid_cols" type="number" step="1" value="30" />
+          </div>
+
+          <div class="field">
+            <label for="terrain_grid_rows">Filas grilla</label>
+            <input id="terrain_grid_rows" name="terrain_grid_rows" type="number" step="1" value="30" />
+          </div>
+
+          <div class="field">
+            <label for="terrain_relief_mm">Relieve terreno (mm)</label>
+            <input id="terrain_relief_mm" name="terrain_relief_mm" type="number" step="0.1" value="24" />
+          </div>
+        </div>
+
+        <button type="submit">Generar STL</button>
+      </form>
+
+      <div class="small">
+        Recomendación inicial: 180 x 140 mm, estilo <strong>hybrid</strong>, relieve 24 mm.
+      </div>
+
+      <div id="status" class="status" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("gpxForm");
+    const statusBox = document.getElementById("status");
+
+    function showStatus(message, type = "") {
+      statusBox.style.display = "block";
+      statusBox.className = "status " + type;
+      statusBox.innerHTML = message;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById("gpx_file");
+      if (!fileInput.files.length) {
+        showStatus("Debes seleccionar un archivo GPX.", "error");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("gpx_file", fileInput.files[0]);
+      formData.append("route_name", document.getElementById("route_name").value);
+      formData.append("model_width_mm", document.getElementById("model_width_mm").value);
+      formData.append("model_height_mm", document.getElementById("model_height_mm").value);
+      formData.append("base_thickness_mm", document.getElementById("base_thickness_mm").value);
+      formData.append("route_style", document.getElementById("route_style").value);
+      formData.append("route_width_mm", document.getElementById("route_width_mm").value);
+      formData.append("route_height_mm", document.getElementById("route_height_mm").value);
+      formData.append("bbox_margin_percent", document.getElementById("bbox_margin_percent").value);
+      formData.append("vertical_exaggeration", document.getElementById("vertical_exaggeration").value);
+      formData.append("terrain_dataset", document.getElementById("terrain_dataset").value);
+      formData.append("terrain_grid_cols", document.getElementById("terrain_grid_cols").value);
+      formData.append("terrain_grid_rows", document.getElementById("terrain_grid_rows").value);
+      formData.append("terrain_relief_mm", document.getElementById("terrain_relief_mm").value);
+
+      showStatus("Generando STL con topografía real... Esto puede tardar un poco.");
+
+      try {
+        const response = await fetch("/generate-from-gpx-file-real-terrain", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          const detail = data.detail || data.note || data.message || "Ocurrió un error.";
+          showStatus("Error:\n" + detail, "error");
+          return;
+        }
+
+        showStatus(
+          `
+<strong>Listo.</strong><br>
+${data.message}<br><br>
+<strong>Ruta:</strong> ${data.route_name || "-"}<br>
+<strong>Puntos:</strong> ${data.num_points || "-"}<br>
+<strong>Nota:</strong> ${data.note || "-"}<br><br>
+<a href="${data.stl_file}" target="_blank" rel="noopener noreferrer">Descargar STL</a>
+          `,
+          "success"
+        );
+      } catch (error) {
+        showStatus("Error de red o del servidor:\n" + error.message, "error");
+      }
+    });
+  </script>
+</body>
+</html>
