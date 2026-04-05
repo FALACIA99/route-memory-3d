@@ -6,6 +6,7 @@ from app.models import (
     GenerateFromGpxRequest,
     GenerateFromLinkRequest,
     GenerateFromGpxRealTerrainRequest,
+    GenerateFromGpxBase64RealTerrainRequest,
     GenerateResponse,
 )
 from app.route_utils import (
@@ -24,7 +25,7 @@ from app.terrain_utils import (
 )
 from app.openapi_custom import custom_openapi
 from app.link_resolvers import resolve_route_link_to_gpx, RouteLinkResolutionError
-from app.file_utils import decode_uploaded_gpx
+from app.file_utils import decode_uploaded_gpx, decode_gpx_base64
 
 
 OUTPUT_DIR = "output"
@@ -33,7 +34,7 @@ PUBLIC_BASE_URL = "https://route-memory-3d.onrender.com"
 
 app = FastAPI(
     title="Route Memory 3D API",
-    version="4.0.0",
+    version="5.0.0",
     description="Genera STL de rutas deportivas como recuerdo 3D."
 )
 
@@ -210,6 +211,31 @@ def generate_from_gpx_real_terrain(payload: GenerateFromGpxRealTerrainRequest):
     try:
         return build_real_terrain_stl_from_gpx_content(
             gpx_content=payload.gpx_content,
+            route_name=payload.route_name,
+            model_width_mm=payload.model_width_mm,
+            model_height_mm=payload.model_height_mm,
+            base_thickness_mm=payload.base_thickness_mm,
+            route_style=payload.route_style,
+            route_width_mm=payload.route_width_mm,
+            route_height_mm=payload.route_height_mm,
+            bbox_margin_percent=payload.bbox_margin_percent,
+            vertical_exaggeration=payload.vertical_exaggeration,
+            terrain_dataset=payload.terrain_dataset,
+            terrain_grid_cols=payload.terrain_grid_cols,
+            terrain_grid_rows=payload.terrain_grid_rows,
+            terrain_relief_mm=payload.terrain_relief_mm,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/generate-from-gpx-base64-real-terrain", response_model=GenerateResponse)
+def generate_from_gpx_base64_real_terrain(payload: GenerateFromGpxBase64RealTerrainRequest):
+    try:
+        gpx_content = decode_gpx_base64(payload.gpx_base64)
+
+        return build_real_terrain_stl_from_gpx_content(
+            gpx_content=gpx_content,
             route_name=payload.route_name,
             model_width_mm=payload.model_width_mm,
             model_height_mm=payload.model_height_mm,
